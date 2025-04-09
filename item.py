@@ -73,6 +73,13 @@ class Item:
                  #Then the k-distance will become the distance to the k-1th neighbor
                    n = [[self.dist(x), x] for x in self.neighbors]
                    bisect.insort(n, [distance, new], key = lambda x: x[0])
+
+                   #Adjust rKNN's of any Items we remove
+                   for i in range(k, len(n)):
+                       elem = n[i][1]
+                       if self in elem.reverse_knn:
+                           elem.reverse_knn.remove(self)
+                   
                    n = n[0:k]
 
                    self.neighbors = [x[1] for x in n]
@@ -96,27 +103,37 @@ class Item:
     
     def set_lrd(self, k):
         """
-        sets Local reachability density for self
+        Sets Local reachability density for self
+
+        Note: If the dataset only has one point (or one kind of point), LRD is set to 0, but it's really undefined.
         """
         sum = 0
         for x in self.neighbors:
             sum += self.reach_dist(x)
 
         if sum == 0:
-            raise Exception("Can't take inverse of 0. Does this Item have a neighborhood?")
+            #raise Exception("Can't take inverse of 0. Does this Item have a neighborhood?")
+            self.lrd = 0 #Trying to avoid an exception
 
-        self.lrd = ((1 / k) * sum) ** (-1)
+        else:
+            self.lrd = ((1 / k) * sum) ** (-1)
     
     def set_lof(self, k):
         """
-        sets Local outlier factor for self
-        """
-        self_lrd = self.set_lrd(k)
-        sum = 0
-        for x in self.neighbors:
-            sum += (x.set_lrd(k) / self_lrd)
+        Sets Local outlier factor for self
 
-        self.lof (1 / k) * sum
+        Note: If the dataset only consists of 1 point, LOF is set to 0, but it's really undefined
+        """
+        #lrd's should already be set
+        sum = 0
+
+        if self.lrd == 0:
+            self.lof = 0 #Filler
+        else:
+            for x in self.neighbors:
+                sum += (x.lrd / self.lrd)
+
+            self.lof = (1 / k) * sum
 
 
 #Tests
