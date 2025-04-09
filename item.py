@@ -1,123 +1,141 @@
 """
-Class for a generic "item" that have distances between them-- i.e. points in the Euclidean space
-
+File: item.py
+Author: Aidan Clark
+Last Updated: 4/9/2025
 """
 
-import bisect #For sorted array inserts
+import bisect
 
 class Item:
-
+    """
+    A class that represents items in a data stream
+    For use by outlier detection algorithms that use an incremental LOF strategy
+    """
     def __init__(self, tuple):
+        """
+        We take a tuple/list/whatever that represents a point in the Euclidean space
+
+        We store the k-nearest neighbors and the reverse KNN of the point.
+        We also cache the k_distance, LRD, and LOF of the point
+        We assume that the algorithm actually performing the insertion of the
+        point makes the necessary method calls to update these values!!
+        """
         self.tuple = tuple
-        self.neighborhood = []
-        #The k-distance neighborhood is every Item in our dataset whose distance to p
-        # is not greater than k-dist(p)
-        #According to the way I wrote self.neighborhood, this is
-        #a list of >=k Item objects in sorted order by increasing distance from self
-        
+
+        #Neighborhood information
+        self.neighbors = [] #List of k-nearest neighbors
+        self.reverse_knn = [] #List of points whose neighborhoods include self
+
+        #Cached Values
+        self.k_distance = None
+        self.lrd = None
+        self.lof = None
+
+    def __repr__(self):
+        return "Item: " + str(self.tuple)
+    
     def dist(self, other):
         """
-        Simple Euclidean distance. I suppose we could override this if we wanted something different
+        Simple Euclidean distance between two Item objects
         """
+
         sum = 0
         for i in range(len(self.tuple)):
             sum += (self.tuple[i] - other.tuple[i]) ** 2
 
         return sum ** (1 / 2)
     
-    def __repr__(self):
-        return self.tuple
-    
-    def set_k_neighborhood(self, D, k):
-    
+    def insert_into_neighborhood(self, new, k):
         """
-        self = currently inserted point
-        D = our database of points-- list of Item objects
-        k = number of neighbors to consider (parameter of overall algo)
+        Takes a new item and a value k and tries to insert new into the neighborhood of self
 
-        Updates k nearest neighborhood parameter of self
+        If this succeeds, the neighbors field AND the k_distance field are updated and we return True.
+
+        Otherwise, we return False.
+
+        When inserting, we maintain the following constraints:
+            - The neighbors field is in increasing sorted order by distance from self
+            - At most k-1 items in neighbors have distances strictly less than self.k_distance
+            - At least k items in neighbors have distances at most self.k_distance
         """
 
-        def insert_and_trim (distance, item, cur_lis):
-            """
-            Insert the new item into the neighborhood, maintaining sorted order by increasing distance
-            Trim list to maintain constraints.
-            i..e. we want no more than k-1 items to have distances strictly less than k-dist(item)
-            and we want at least k items to have distances <= k-dist(item)
-                -- so we preserve duplicates of the kth item's distance!
-            """
-            cur_lis = bisect.insort([distance, item], cur_lis, key = lambda x : x[0])
+        distance = self.dist(new)
 
-            #Trim list s.t. we have at most k - 1 items whose distances are strictly less than
-            #the highest distance in the list-- per original paper on LOF
-            num_seen = 0
-            most_recent_dist = cur_lis[0]
-            for i in range(len(cur_lis)):
-                if i < k - 1:
-                    num_seen += 1 #I want to count each of the k-1 first items
-                elif i == k - 1:
-                    #This is the kth item because of zero-indexing
-                    num_seen += 1
-                    most_recent_dist = cur_lis[i][0]
-                else:
-                    if cur_lis[i][0] == most_recent_dist:
-                        #keep duplicates
-                        continue
-                    else:
-                        #We can exclude everything else in our list
-                        cur_lis = cur_lis[0:i]
-                        break
-            return cur_lis
+        if len(self.neighbors) < k or self.k_distance == None or distance <= self.k_distance:
+             #Then we're adding to neighbors
+             if self.k_distance == None or distance > self.k_distance:
+                 self.k_distance = distance
+                 self.neighbors.append(new)
+             elif distance == self.k_distance:
+                 #Then k_distance won't change. We just need to add to neighbors
+                 self.neighbors.append(new)
+             else:
+                 #Then the k-distance will become the distance to the k-1th neighbor
+                   n = [[self.dist(x), x] for x in self.neighbors]
+                   bisect.insort(n, [distance, new], key = lambda x: x[0])
+                   n = n[0:k]
 
+                   self.neighbors = [x[1] for x in n]
+                   self.k_distance = self.dist(self.neighbors[-1])
 
-        cur_neighborhood = [] #Will be lists of lists
-        size = 0
-        for other in D:
-            distance = self.dist(other)
-            if size < k or distance <= cur_neighborhood[-1]:
-               #Insert item and adjust list to maintain neighborhood constraints
-               cur_neighborhood = insert_and_trim(distance, self, cur_neighborhood)
+             return True
 
-        self.neighborhood = [x[1] for x in cur_neighborhood] #Just Item objects
-
-    def k_dist(self):
-        """
-        Returns distance from self to its k-nearest neighbor
-        """
-        if self.neighborhood == []:
-            raise Exception("Did you set the k-neighborhood of this point yet?")
+        else:
+            return False
         
-        return self.neighborhood[-1] #Assumes that neighborhood is in increasing sorted order by distance
-
     def reach_dist(self, other):
         """
-        self and other are Item objects
-        """
-        k_dist_self = self.k_dist()
-        dist = self.dist(other)
+        From Wikipedia: the reachability distance of an object A from B is the 
+        true distance between the two objects, but at least the k-distance of B
 
-        return max(k_dist_self, dist)
-
-    def lrd(self, k):
+        Note that we assume that both objects have already had their k-distances calculated and set.
+        This occurs when we update the neighbors of each.
         """
-        Local reachability density for self
+        distance = self.dist(other)
+        return max(distance, other.k_distance)
+    
+    def set_lrd(self, k):
+        """
+        sets Local reachability density for self
         """
         sum = 0
-        for x in self.neighborhood:
+        for x in self.neighbors:
             sum += self.reach_dist(x)
 
         if sum == 0:
             raise Exception("Can't take inverse of 0. Does this Item have a neighborhood?")
 
-        return ((1 / k) * sum) ** (-1)
+        self.lrd = ((1 / k) * sum) ** (-1)
     
-    def lof(self, k):
+    def set_lof(self, k):
         """
-        Local outlier factor for self
+        sets Local outlier factor for self
         """
-        self_lrd = self.lrd(k)
+        self_lrd = self.set_lrd(k)
         sum = 0
-        for x in self.neighborhood:
-            sum += (x.lrd(k) / self_lrd)
+        for x in self.neighbors:
+            sum += (x.set_lrd(k) / self_lrd)
 
-        return (1 / k) * sum
+        self.lof (1 / k) * sum
+
+
+#Tests
+"""
+x = Item([2])
+print(x.neighbors)
+y = Item([3])
+x.insert_into_neighborhood(y, 2)
+print("The neighborhood of x is", x.neighbors)
+y.insert_into_neighborhood(x, 2)
+
+z = Item([6])
+w = Item ([5])
+x.insert_into_neighborhood(z, 2)
+print("The neighborhood of x is", x.neighbors)
+x.insert_into_neighborhood(w, 2)
+print("The neighborhood of x is", x.neighbors)
+
+a = Item([5])
+x.insert_into_neighborhood(a, 2)
+print("The neighborhood of x is", x.neighbors)
+"""
