@@ -13,7 +13,7 @@ class IncrementalLOF():
     A class for running the Incremental LOF algorithm.
     We follow a streaming model.
     """
-    def __init__(self, k):
+    def __init__(self, k, threshold = 1):
         """
         k is the number of nearest neighbors to consider in our calculations.
         This can be tuned for the dataset.
@@ -22,6 +22,8 @@ class IncrementalLOF():
         """
         self.data = [] #List of Item objects
         self.k = k
+        self.threshold = threshold
+        self.outliers = []
 
     def __repr__(self):
         return str(self.data)
@@ -70,6 +72,10 @@ class IncrementalLOF():
         #Now, calculate p's stats
         p.set_lrd(self.k)
         p.set_lof(self.k)
+
+        #Make a decision about whether p is an outlier
+        if p.lof > self.threshold:
+            self.outliers.append(p)
 
         #Insert p
         self.data.append(p)
