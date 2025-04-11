@@ -23,7 +23,7 @@ class IncrementalLOF():
         self.data = [] #List of Item objects
         self.k = k
 
-    def __repr__(self, k):
+    def __repr__(self):
         return str(self.data)
 
     def insert(self, point):
