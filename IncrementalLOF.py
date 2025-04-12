@@ -136,7 +136,8 @@ class IncrementalLOF():
 
         plt.scatter(x = x, y = y, color = "black")
         plt.scatter(x = x_o, y = y_o, color = "red", label = "Outliers")
-        plt.show_legend()
+        plt.legend()
+        
 
     def batch_insert_with_gif(self, l, gif_name):
         """
@@ -168,6 +169,56 @@ class IncrementalLOF():
             gif_name,
             save_all=True,
             append_images=frames[1:],
-            duration=200,
+            duration=100,
             loop=0,
         )
+
+    def batch_insert_gif_lof_scale(self, l, gif_name):
+        """
+        Does the same thing as above, but colors each point based on lof value
+        These lof's may not be the same as they were when the outlier decision was made!!
+        Note that past points, while their lof's may change, do not get rejudged on outlier or not
+        """
+
+        # Create the animation
+        fig = plt.figure(figsize=(10, 6))
+
+        frames = []
+
+        for x in l:
+            plt.clf()
+            self.insert(x)
+
+            x_i = [i.tuple[0] for i in self.data if i not in self.outliers]
+            y_i = [i.tuple[1] for i in self.data if i not in self.outliers]
+            lof_i = [i.lof for i in self.data if i not in self.outliers]
+
+            x_o = [i.tuple[0] for i in self.outliers]
+            y_o = [i.tuple[1] for i in self.outliers]
+            lof_o = [i.lof for i in self.outliers]
+
+            global_min = 0
+            global_max = 4
+
+            plt.scatter(x = x_i, y = y_i, vmin = global_min, vmax = global_max, c = lof_i, cmap = 'viridis')
+            plt.scatter(x = x_o, y = y_o, vmin = global_min, vmax = global_max, c = lof_o, cmap = 'viridis', marker = "*", label = "Outlier")
+            
+            plt.colorbar(label='LOF')
+            plt.legend()
+
+            buf = io.BytesIO()
+            plt.savefig(buf, format = "png")
+            buf.seek(0)
+            frames.append(Image.open(buf))
+        
+
+        # Create and save the animated GIF
+        frames[0].save(
+            gif_name,
+            save_all=True,
+            append_images=frames[1:],
+            duration=100,
+            loop=0,
+        )
+
+        
