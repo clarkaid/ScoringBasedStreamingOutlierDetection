@@ -1,7 +1,7 @@
 """
 File: dilof.py
 Author: Aidan Clark
-Updated: 4/10/2025
+Updated: 4/11/2025
 Description: An implementation of the Density summarizing Incremental Local Outlier Factor (DILOF) algorithm,
 as described in this paper:
 https://dl-acm-org.ezproxy.bu.edu/doi/pdf/10.1145/3219819.3220022
@@ -21,7 +21,17 @@ class DILOF(IncrementalLOF):
 
     This is an extension of the Incremental LOF algorithm.
     """
-    def __init__(self, k, window_size, threshold, step_size, regularizer, max_iter):
+    def __init__(self, k:int, window_size:int, threshold:float, step_size:float, regularizer:float, max_iter:int, skipping_enabled = False, print_outliers = False):
+        """
+        Inputs:
+        k = Number of nearest neighbors to consider
+        window_size = Maximum number of points to store at any given time
+        threshold = LOF boundary for deciding whether a point is an outlier or not
+        step_size, regularizer, max_iter: used for gradient descent
+        skipping_enabled = Should we attempt to skip sequences of outliers
+        print_outliers = If True, prints a message each time an outlier is detected
+        """
+        
         self.data = [] #List of Item objects
         self.k = k #Number of nearest neighbors to consider
 
@@ -30,12 +40,15 @@ class DILOF(IncrementalLOF):
         self.window_size = window_size #Maximum window size-- this is how many points we'll store!
         self.threshold = threshold #LOF Threshold for outlier scores. Above this threshold = outlier
 
-        self.skipping_enabled = False #Whether we use skipping scheme in lod()
+        self.skipping_enabled = skipping_enabled #Whether we use skipping scheme in lod()
+        self.try_skip_next = False #Set to True when we see an outlier because it might be the start of a sequence
 
         #Parameters for gradient descent in NDS
         self.step_size = step_size
         self.regularizer = regularizer
         self.max_iter = max_iter
+
+        self.print_outliers = print_outliers
 
     def insert(self, tuple):
         """
@@ -114,6 +127,8 @@ class DILOF(IncrementalLOF):
 
         if item.lof > self.threshold:
             self.outliers.append(item)
+            if self.print_outliers:
+                print("Outlier Detected:", item.tuple, "with a LOF of", item.lof)
 
             #There's more stuff to do with skipping here. Implement Later.
 
@@ -122,7 +137,26 @@ class DILOF(IncrementalLOF):
     
 
     def skipping_scheme(self, item):
-        pass
+        skip_insertion = False
+        if self.try_skip_next:
+            #Need to compute d1(x)_bar --> the average distance from a point to its first nearest neighbor
+            sum_d1 = 0
+            for x in self.data:
+                sum_d1 += x.dist(x.neighbors[0])
+
+            d1_bar = sum_d1 / len(self.data)
+
+            if item.dist(self.outliers[-1]) < d1_bar:
+                #i.e. if this new point is closer to the most recent outlier than average distance
+                #Then it is probably part of a sequence of outliers.
+                #Add to outlier list and do not insert it
+                self.outliers.append(item)
+                print("Outlier Detected:", item, "as part of a sequence")
+
+                skip_insertion = True
+        
+        return skip_insertion
+
     
     def nds(self):
         """
@@ -272,7 +306,6 @@ class DILOF(IncrementalLOF):
             return 2 * y
         else:
             return 0
-
 
 def sigmoid(x):
         """

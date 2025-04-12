@@ -8,12 +8,19 @@ this paper: https://ieeexplore.ieee.org/document/4221341
 
 from item import Item
 
+import matplotlib.pyplot as plt
+
+import io
+import numpy as np
+from matplotlib.animation import FuncAnimation
+from PIL import Image
+
 class IncrementalLOF():
     """
     A class for running the Incremental LOF algorithm.
     We follow a streaming model.
     """
-    def __init__(self, k, threshold = 1):
+    def __init__(self, k, threshold = 1, print_outliers = False):
         """
         k is the number of nearest neighbors to consider in our calculations.
         This can be tuned for the dataset.
@@ -24,6 +31,7 @@ class IncrementalLOF():
         self.k = k
         self.threshold = threshold
         self.outliers = []
+        self.print_outliers = print_outliers #Prints outliers upon detection
 
     def __repr__(self):
         return str(self.data)
@@ -76,6 +84,8 @@ class IncrementalLOF():
         #Make a decision about whether p is an outlier
         if p.lof > self.threshold:
             self.outliers.append(p)
+            if self.print_outliers:
+                print("Outlier Detected:", p.tuple, "with a LOF of", p.lof)
 
         #Insert p
         self.data.append(p)
@@ -108,3 +118,56 @@ class IncrementalLOF():
         """
         for x in l:
             self.insert(x)
+
+    def pretty_picture(self):
+        """
+        Generates a matplotlib scatterplot of the current state of the algo
+        It shows "regular" points in black and points deemed as outliers in red
+        Only works for 2D datasets (I suppose I could extend this to work for 3D datasets too...)
+        """
+        if len(self.data[0].tuple) != 2:
+            raise Exception("Dimension of data won't work with pretty_picture")
+        
+        x = [i.tuple[0] for i in self.data]
+        y = [i.tuple[1] for i in self.data]
+
+        x_o = [i.tuple[0] for i in self.outliers]
+        y_o = [i.tuple[1] for i in self.outliers]
+
+        plt.scatter(x = x, y = y, color = "black")
+        plt.scatter(x = x_o, y = y_o, color = "red", label = "Outliers")
+        plt.show_legend()
+
+    def batch_insert_with_gif(self, l, gif_name):
+        """
+        Takes l, a list of tuples to insert, and a gif_name and generates a gif
+        called gif_name that shows the state of the algorithm after each insert
+
+        The GIF creation code was taken from: 
+        https://safjan.com/how-to-create-animated-gif-from-matplotlib-plot-in-python/
+
+        This method is useful for testing and for illustrating how our algorithms work.
+        """
+        # Create the animation
+        fig = plt.figure(figsize=(10, 6))
+
+        frames = []
+
+        for x in l:
+            plt.clf()
+            self.insert(x)
+            self.pretty_picture()
+            buf = io.BytesIO()
+            plt.savefig(buf, format = "png")
+            buf.seek(0)
+            frames.append(Image.open(buf))
+            
+
+        # Create and save the animated GIF
+        frames[0].save(
+            gif_name,
+            save_all=True,
+            append_images=frames[1:],
+            duration=200,
+            loop=0,
+        )
