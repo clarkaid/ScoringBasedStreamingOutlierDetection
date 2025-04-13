@@ -137,6 +137,10 @@ class DILOF(IncrementalLOF):
     
 
     def skipping_scheme(self, item):
+        """
+        Returns True if we ought to skip the insertion of item (b/c it is part of a sequence of outliers)
+        and False otherwise
+        """
         skip_insertion = False
         if self.try_skip_next:
             #Need to compute d1(x)_bar --> the average distance from a point to its first nearest neighbor
