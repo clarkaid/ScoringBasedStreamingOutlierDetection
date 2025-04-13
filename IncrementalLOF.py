@@ -44,7 +44,11 @@ class IncrementalLOF():
             -- We calculate the k-nearest neighbors and the reverse k-nearest neighbors of the point
             -- We update the k-distances, LRD's, and LOF's of any items that are affected by this insert
             -- Finally, we calculate and set the k-distance, LRD, and LOF of the new item
+
+        Returns True if the item is deemed an outlier and False otherwise
         """
+        outlier = False
+
         p = Item(point)
 
         #Compute KNN and RKNN of p
@@ -84,11 +88,14 @@ class IncrementalLOF():
         #Make a decision about whether p is an outlier
         if p.lof > self.threshold:
             self.outliers.append(p)
+            outlier = True
             if self.print_outliers:
                 print("Outlier Detected:", p.tuple, "with a LOF of", p.lof)
 
         #Insert p
         self.data.append(p)
+
+        return outlier
 
 
 
