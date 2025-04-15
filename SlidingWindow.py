@@ -125,13 +125,13 @@ for point in stream:
     if is_outlier:
         detected.append(point)
 
-# Plot results and save to file
-x, y = stream[:, 0], stream[:, 1]
-plt.figure(figsize=(8, 6))
-plt.scatter(x, y, s=10, label="All Points")
-if detected:
-    dx, dy = zip(*detected)
-    plt.scatter(dx, dy, c='red', s=40, label="Detected Outliers")
+# Uncomment for plots
+# x, y = stream[:, 0], stream[:, 1]
+# plt.figure(figsize=(8, 6))
+# plt.scatter(x, y, s=10, label="All Points")
+# if detected:
+#     dx, dy = zip(*detected)
+#     plt.scatter(dx, dy, c='red', s=40, label="Detected Outliers")
 # plt.title("KDEWRStreaming: Outlier Detection")
 # plt.xlabel("x")
 # plt.ylabel("y")
