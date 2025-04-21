@@ -95,7 +95,7 @@ class IncrementalLOF():
         #Insert p
         self.data.append(p)
 
-        return outlier
+        return (outlier, p.lof)
 
 
 

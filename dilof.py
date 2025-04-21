@@ -74,6 +74,11 @@ class DILOF(IncrementalLOF):
 
                 self.data = z_summary + self.data #Add summary (W/4 points) to front
 
+        if res < 0 or res > self.threshold:
+            #Outlier
+            return (True, res)
+        else:
+            return (False, res)
     
     def lod(self, item):
         """
