@@ -90,7 +90,7 @@ class DILOF(IncrementalLOF):
 
         #Should we skip this point? i.e. is it part of a sequence of outliers?
         if self.skipping_enabled:
-            if self.skipping_scheme():
+            if self.skipping_scheme(item):
                 return -1
 
         #Compute KNN and RKNN of p
@@ -103,12 +103,12 @@ class DILOF(IncrementalLOF):
         for j in x_update:
             #The k-distances of each of these points should have already been updated
             #when we calculated the RKNN. Although I could have done it more efficiently.
-            for i in j.neighbors:
-                if i == item:
-                    continue
-                else:
-                    if j in i.neighbors and j not in x_update_lrd:
-                        x_update_lrd.append(i)
+                for i in j.neighbors:
+                    if i == item:
+                        continue
+                    else:
+                        if j in i.neighbors and j not in x_update_lrd:
+                            x_update_lrd.append(i)
 
         x_update_lof = x_update_lrd
 
@@ -131,11 +131,13 @@ class DILOF(IncrementalLOF):
         #Notice that, while we recompute old LOF's as necessary, we do not reevaluate outlier decisions
 
         if item.lof > self.threshold:
+            #We've detected an outlier, y'all
             self.outliers.append(item)
             if self.print_outliers:
                 print("Outlier Detected:", item.tuple, "with a LOF of", item.lof)
 
-            #There's more stuff to do with skipping here. Implement Later.
+            self.try_skip_next = True
+            
 
         #Note that the item isn't actually inserted here.
         return item.lof
@@ -160,9 +162,13 @@ class DILOF(IncrementalLOF):
                 #Then it is probably part of a sequence of outliers.
                 #Add to outlier list and do not insert it
                 self.outliers.append(item)
-                print("Outlier Detected:", item, "as part of a sequence")
+                if self.print_outliers:
+                    print("Outlier Detected:", item, "as part of a sequence")
 
                 skip_insertion = True
+            else:
+                self.try_skip_next = False #We didn't get an outlier sequence, so the next point can't be next
+                                            #in an outlier sequence
         
         return skip_insertion
 

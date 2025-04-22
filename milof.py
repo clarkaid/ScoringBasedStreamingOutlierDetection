@@ -38,6 +38,8 @@ class milof(IncrementalLOF):
             if len(self.recent_data) >= self.b:
                 self._summarize_oldest_data()
 
+        return res
+
     def lod(self, item):
         """
         Computes the LOF of the given item using summaries + recent data.
