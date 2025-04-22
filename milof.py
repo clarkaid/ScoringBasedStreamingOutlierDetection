@@ -38,7 +38,11 @@ class milof(IncrementalLOF):
             if len(self.recent_data) >= self.b:
                 self._summarize_oldest_data()
 
-        return res
+        if res < 0 or res > self.threshold:
+            #Outlier
+            return (True, res)
+        else:
+            return (False, res)
 
     def lod(self, item):
         """

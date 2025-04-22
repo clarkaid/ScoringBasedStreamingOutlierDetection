@@ -88,11 +88,7 @@ def test(data, method, k = 30, threshold = 1, window_size = 200, skipping_enable
     classification = []
     scores = []
     for d in data:
-        if method == "MILOF":
-            res = alg.insert(d)
-            (decision, score) = (True if res == -1 else res > threshold, res)
-        else:
-            (decision, score) = alg.insert(d)
+        (decision, score) = alg.insert(d)
         scores.append(score)
         classification.append(decision)
     
