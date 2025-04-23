@@ -10,7 +10,7 @@ import numpy as np
 from IncrementalLOF import IncrementalLOF
 from dilof import DILOF
 
-from SlidingWindow import KDEWRStreaming
+from kdwer import KDEWRStreaming
 
 from milof import milof
 
