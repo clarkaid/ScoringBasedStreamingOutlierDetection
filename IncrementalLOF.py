@@ -56,28 +56,34 @@ class IncrementalLOF():
 
         #See this article for more info: https://ieeexplore.ieee.org/document/4221341
         x_update = p.reverse_knn.copy() #List of Items that we're going to have to update
-        x_update_lrd = x_update
+        x_update_lrd = x_update[:]
+
+        #print("X_update is", x_update)
 
         for j in x_update:
             #The k-distances of each of these points should have already been updated
             #when we calculated the RKNN. Although I could have done it more efficiently.
             for i in j.neighbors:
-                if i == p:
+                if i is p:
+                    #print("I'm happening")
                     continue
                 else:
                     if j in i.neighbors and j not in x_update_lrd:
+                        #print("Adding", i, "to x_update_lrd")
                         x_update_lrd.append(i)
 
-        x_update_lof = x_update_lrd
+        x_update_lof = x_update_lrd[:]
 
         for m in x_update_lrd:
             m.set_lrd(self.k)
             for y in m.neighbors:
-                if y not in x_update_lof:
+                if y not in x_update_lof and y is not p:
                     x_update_lof.append(y)
 
 
+        #print("Made it here. Update_lof is", x_update_lof)
         for l in x_update_lof:
+            #print("Updating lof for", l)
             l.set_lof(self.k)
             
         #All of the other necessary Items have been updated.
@@ -124,6 +130,7 @@ class IncrementalLOF():
         Inserts multiple points at a time
         """
         for x in l:
+            print("Inserting: ", x)
             self.insert(x)
 
     def pretty_picture(self):

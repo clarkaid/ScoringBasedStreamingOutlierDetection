@@ -80,13 +80,14 @@ class DILOF(IncrementalLOF):
         else:
             return (False, res)
     
+    """
     def lod(self, item):
-        """
+        
         Described in Algorithm 4 of the above paper.
         Essentially does the same thing as incremental LOF, with an added skipping option
 
         Returns the LOF of the point OR -1 if the point should be skipped
-        """
+        
 
         #Should we skip this point? i.e. is it part of a sequence of outliers?
         if self.skipping_enabled:
@@ -98,7 +99,7 @@ class DILOF(IncrementalLOF):
 
         #See this article for more info: https://ieeexplore.ieee.org/document/4221341
         x_update = item.reverse_knn.copy() #List of Items that we're going to have to update
-        x_update_lrd = x_update
+        x_update_lrd = x_update[:]
 
         for j in x_update:
             #The k-distances of each of these points should have already been updated
@@ -110,7 +111,7 @@ class DILOF(IncrementalLOF):
                         if j in i.neighbors and j not in x_update_lrd:
                             x_update_lrd.append(i)
 
-        x_update_lof = x_update_lrd
+        x_update_lof = x_update_lrd[:]
 
         for m in x_update_lrd:
             m.set_lrd(self.k)
@@ -140,6 +141,61 @@ class DILOF(IncrementalLOF):
             
 
         #Note that the item isn't actually inserted here.
+        return item.lof
+
+    """
+    def lod(self, item):
+        if self.skipping_enabled and self.skipping_scheme(item):
+                return -1
+
+        #Compute KNN and RKNN of p
+        self.KNN_and_RKNN(item)
+
+        #See this article for more info: https://ieeexplore.ieee.org/document/4221341
+        x_update = item.reverse_knn.copy() #List of Items that we're going to have to update
+        x_update_lrd = x_update[:]
+
+        #print("X_update is", x_update)
+
+        for j in x_update:
+            #The k-distances of each of these points should have already been updated
+            #when we calculated the RKNN. Although I could have done it more efficiently.
+            for i in j.neighbors:
+                if i is item:
+                    #print("I'm happening")
+                    continue
+                else:
+                    if j in i.neighbors and j not in x_update_lrd:
+                        #print("Adding", i, "to x_update_lrd")
+                        x_update_lrd.append(i)
+
+        x_update_lof = x_update_lrd[:]
+
+        for m in x_update_lrd:
+            m.set_lrd(self.k)
+            for y in m.neighbors:
+                if y not in x_update_lof and y is not item:
+                    x_update_lof.append(y)
+
+
+        #print("Made it here. Update_lof is", x_update_lof)
+        for l in x_update_lof:
+            #print("Updating lof for", l)
+            l.set_lof(self.k)
+            
+        #All of the other necessary Items have been updated.
+        #Now, calculate p's stats
+        item.set_lrd(self.k)
+        item.set_lof(self.k)
+
+        if item.lof > self.threshold:
+            self.outliers.append(item)
+            if self.print_outliers:
+                print("Outlier Detected:", item.tuple, "with a LOF of", item.lof)
+            self.try_skip_next = True
+        else:
+            self.try_skip_next = False
+
         return item.lof
     
 

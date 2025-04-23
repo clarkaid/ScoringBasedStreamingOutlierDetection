@@ -131,7 +131,11 @@ class Item:
             self.lof = 0 #Filler
         else:
             for x in self.neighbors:
-                sum += (x.lrd / self.lrd)
+                #print("Summing for", x)
+                if x.lrd == None:
+                    sum += 0
+                else: 
+                    sum += (x.lrd / self.lrd)
 
             self.lof = (1 / k) * sum
 
