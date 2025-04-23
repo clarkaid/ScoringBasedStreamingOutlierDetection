@@ -157,12 +157,19 @@ class milof(IncrementalLOF):
             members = [old_items[j] for j in range(len(points)) if labels[j] == i]
             if not members:
                 continue
+
             center = kmeans.cluster_centers_[i]
-            avg_kdist = np.mean([m.k_distance for m in members if m.k_distance is not None])
-            avg_lrd = np.mean([m.lrd for m in members if m.lrd is not None])
-            avg_lof = np.mean([m.lof for m in members if m.lof is not None])
-            weight = len(members)
-            new_summaries.append(ClusterSummary(center, avg_kdist, avg_lrd, avg_lof, weight))
+
+            # Only include non-None values
+            kdist_vals = [m.k_distance for m in members if m.k_distance is not None]
+            lrd_vals = [m.lrd for m in members if m.lrd is not None]
+            lof_vals = [m.lof for m in members if m.lof is not None]
+
+            avg_kdist = np.mean(kdist_vals) if kdist_vals else 0.0
+            avg_lrd = np.mean(lrd_vals) if lrd_vals else 0.0
+            avg_lof = np.mean(lof_vals) if lof_vals else 1.0
+
+            new_summaries.append(ClusterSummary(center, avg_kdist, avg_lrd, avg_lof, len(members)))
 
         self._merge_summaries(new_summaries)
 
