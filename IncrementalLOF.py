@@ -145,8 +145,8 @@ class IncrementalLOF():
         x = [i.tuple[0] for i in self.data]
         y = [i.tuple[1] for i in self.data]
 
-        x_o = [i.tuple[0] for i in self.outliers]
-        y_o = [i.tuple[1] for i in self.outliers]
+        x_o = [i.tuple[0] for i in self.outliers if i in self.data]
+        y_o = [i.tuple[1] for i in self.outliers if i in self.data]
 
         plt.scatter(x = x, y = y, color = "black")
         plt.scatter(x = x_o, y = y_o, color = "red", label = "Outliers")
@@ -231,7 +231,7 @@ class IncrementalLOF():
             gif_name,
             save_all=True,
             append_images=frames[1:],
-            duration=100,
+            duration=60,
             loop=0,
         )
 

@@ -133,7 +133,8 @@ class Item:
             for x in self.neighbors:
                 #print("Summing for", x)
                 if x.lrd == None:
-                    sum += 0
+                    sum += 0 #This should only occur when we come across the point that we just inserted
+                             #whose LOF hasn't been set yet.
                 else: 
                     sum += (x.lrd / self.lrd)
 
