@@ -1,6 +1,8 @@
 # Scoring-Based Streaming Algorithms for Outlier Detection
 Authors: Aidan Clark, Rithvik Nakirikanti, Jeremy Bui
+
 Originally Created for the course Algorithmic Techniques for Taming Big Data, taught by Krzysztof Onak 
+
 Spring 2025
 
 ## Overview
